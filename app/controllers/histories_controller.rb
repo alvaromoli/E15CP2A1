@@ -1,6 +1,7 @@
 class HistoriesController < ApplicationController
   before_action :set_history, only: [:show, :edit, :update, :destroy]
-
+  before_action :authenticate_user!, except: [:index]
+  before_action :history_owner, only: [:edit, :update, :destroy]
   # GET /histories
   # GET /histories.json
   def index
@@ -25,7 +26,7 @@ class HistoriesController < ApplicationController
   # POST /histories.json
   def create
     @history = History.new(history_params)
-
+    @history.user_id = current_user.id
     respond_to do |format|
       if @history.save
         format.html { redirect_to @history, notice: 'History was successfully created.' }
@@ -35,6 +36,10 @@ class HistoriesController < ApplicationController
         format.json { render json: @history.errors, status: :unprocessable_entity }
       end
     end
+  end
+
+  def list
+    @histories = History.where(user_id: current_user.id)
   end
 
   # PATCH/PUT /histories/1
@@ -59,6 +64,13 @@ class HistoriesController < ApplicationController
       format.html { redirect_to histories_url, notice: 'History was successfully destroyed.' }
       format.json { head :no_content }
     end
+  end
+
+  def history_owner
+    unless @history.user_id == current_user.id || current_user.admin?
+      flash[:notice] = 'Access denied, that history doesn´t belong to you'
+      redirect_to root_path
+     end
   end
 
   private
